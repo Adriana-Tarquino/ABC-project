@@ -1,0 +1,86 @@
+<div class="crud-container page-surface">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Maestros del modelo</span>
+      <h1>Productos y servicios</h1>
+      <p class="subtitle">Registra los objetos de costo que recibirán las asignaciones finales del modelo ABC.</p>
+    </div>
+    <div class="header-badge">
+      <mat-icon>inventory_2</mat-icon>
+      <span>Destino de costos</span>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <span>Objetos de costo</span>
+      <strong>{{ masterData.costObjects().length }}</strong>
+      <small>Productos, servicios o proyectos registrados</small>
+    </article>
+    <article class="stat-card accent">
+      <span>Resultado esperado</span>
+      <strong>Costo final</strong>
+      <small>Cada elemento recibirá su proporción ABC</small>
+    </article>
+  </div>
+
+  <section class="section-card form-card">
+    <div class="card-heading">
+      <div>
+        <h2>Nuevo producto o servicio</h2>
+        <p>Agrega los elementos que necesitan medición de costo final.</p>
+      </div>
+    </div>
+
+    <form [formGroup]="costObjectForm" (ngSubmit)="onSubmit()" class="flex-form">
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Nombre del producto o servicio</mat-label>
+        <input matInput formControlName="name" placeholder="Ej. Mesas de madera">
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="costObjectForm.invalid || isSubmitting" class="submit-btn">
+        <mat-icon>add</mat-icon>
+        Agregar
+      </button>
+    </form>
+  </section>
+
+  <section class="section-card data-card">
+    <div class="card-heading">
+      <div>
+        <h2>Listado de objetos de costo</h2>
+        <p>Administra los destinos que aparecerán en los resultados del cálculo.</p>
+      </div>
+      <span class="record-count">{{ masterData.costObjects().length }} registros</span>
+    </div>
+
+    <div class="table-container">
+      <table mat-table [dataSource]="masterData.costObjects()">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let element" class="item-name">{{ element.name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let element" class="action-cell">
+            <button mat-icon-button color="warn" (click)="deleteCostObject(element.id)" aria-label="Eliminar objeto de costo" title="Eliminar objeto de costo">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-state" colspan="2">
+            <mat-icon>inventory_2</mat-icon>
+            <strong>Sin objetos de costo registrados</strong>
+            <span>Agrega un producto, servicio o proyecto para calcular su costo final.</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </section>
+</div>

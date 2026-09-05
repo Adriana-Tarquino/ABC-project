@@ -1,0 +1,55 @@
+<div class="reports-container page-surface">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Análisis ejecutivo</span>
+      <h1>Resultados ABC</h1>
+      <p class="subtitle">Visualiza la composición del costo final y detecta qué actividades concentran mayor consumo.</p>
+    </div>
+    <div class="header-badge">
+      <mat-icon>query_stats</mat-icon>
+      <span>Dashboard gerencial</span>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <span>Vista actual</span>
+      <strong>Costos</strong>
+      <small>Lectura consolidada por producto</small>
+    </article>
+    <article class="stat-card info">
+      <span>Comparación</span>
+      <strong>Actividades</strong>
+      <small>Procesos ordenados por impacto</small>
+    </article>
+    <article class="stat-card accent">
+      <span>Uso recomendado</span>
+      <strong>Decidir</strong>
+      <small>Prioriza ajustes con base en consumo real</small>
+    </article>
+  </div>
+
+  <div class="charts-grid">
+    <section class="section-card chart-panel">
+      <div class="card-heading">
+        <div>
+          <h2>Costo por producto</h2>
+          <p>Participación de cada objeto de costo en el resultado calculado.</p>
+        </div>
+        <span class="report-note"><mat-icon>pie_chart</mat-icon> Mix</span>
+      </div>
+      <div #productChart class="chart-frame"></div>
+    </section>
+
+    <section class="section-card chart-panel">
+      <div class="card-heading">
+        <div>
+          <h2>Costo por actividad</h2>
+          <p>Comparativo de actividades con mayor carga de recursos.</p>
+        </div>
+        <span class="report-note"><mat-icon>bar_chart</mat-icon> Ranking</span>
+      </div>
+      <div #activityChart class="chart-frame"></div>
+    </section>
+  </div>
+</div>

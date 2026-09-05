@@ -1,0 +1,85 @@
+<div class="allocation-container page-surface">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Operación ABC</span>
+      <h1>Actividades a productos</h1>
+      <p class="subtitle">Reparte cada actividad entre los productos o servicios que la requieren para completar el costo final.</p>
+    </div>
+    <div class="header-badge">
+      <mat-icon>account_tree</mat-icon>
+      <span>Asignación secundaria</span>
+    </div>
+  </header>
+
+  <div class="allocation-layout">
+    <section class="section-card allocation-card">
+      <form [formGroup]="allocationForm" (ngSubmit)="onSubmit()" class="allocation-form">
+        <div class="card-heading">
+          <div>
+            <h2>Selecciona la actividad</h2>
+            <p>Luego asigna el porcentaje que corresponde a cada producto o servicio.</p>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Actividad</mat-label>
+          <mat-select formControlName="activity_id">
+            <mat-option *ngFor="let activity of masterData.activities()" [value]="activity.id">
+              {{ activity.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div *ngIf="distributionsArray.length === 0" class="empty-panel">
+          <mat-icon>touch_app</mat-icon>
+          <h3>Selecciona una actividad</h3>
+          <p>Los productos y servicios aparecerán aquí para definir sus porcentajes.</p>
+        </div>
+
+        <div *ngIf="distributionsArray.length > 0" class="distributions-section">
+          <div class="card-heading">
+            <div>
+              <h3>Distribución por producto</h3>
+              <p>Indica cuánto de esta actividad corresponde a cada objeto de costo.</p>
+            </div>
+            <span class="record-count">{{ distributionsArray.length }} destinos</span>
+          </div>
+
+          <div formArrayName="distributions" class="distributions-list">
+            <div *ngFor="let dist of distributionsArray.controls; let i=index" [formGroupName]="i" class="dist-row">
+              <span class="row-index">{{ i + 1 }}</span>
+
+              <mat-form-field appearance="outline" class="cost-object-field">
+                <mat-label>Producto o servicio</mat-label>
+                <input matInput formControlName="cost_object_name">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="percent-field">
+                <mat-label>Porcentaje</mat-label>
+                <input matInput type="number" formControlName="percentage" min="0" max="100">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <button mat-raised-button color="primary" type="submit" class="save-action" [disabled]="allocationForm.invalid || isSubmitting || totalPercentage > 100">
+            <mat-icon>save</mat-icon>
+            Guardar asignación
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="summary-card" [class.error]="totalPercentage > 100">
+      <div class="summary-icon">
+        <mat-icon>{{ totalPercentage > 100 ? 'warning' : 'donut_small' }}</mat-icon>
+      </div>
+      <span>Total asignado</span>
+      <strong>{{ totalPercentage }}%</strong>
+      <div class="progress-track" aria-hidden="true">
+        <span [style.width.%]="allocationProgress"></span>
+      </div>
+      <p *ngIf="totalPercentage <= 100">{{ remainingPercentage }}% disponible para completar la distribución.</p>
+      <p *ngIf="totalPercentage > 100">El total supera el límite permitido de 100%.</p>
+    </aside>
+  </div>
+</div>
