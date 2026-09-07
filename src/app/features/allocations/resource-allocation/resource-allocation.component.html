@@ -11,6 +11,28 @@
     </div>
   </header>
 
+  <section class="abc-stage-guide" aria-label="Etapa uno del costeo ABC">
+    <div class="stage-copy">
+      <span class="stage-kicker">Etapa 1 de 2 · Costos indirectos</span>
+      <h2>Convierte gastos en costo de actividades</h2>
+      <p>Un recurso es un gasto total, como alquiler o sueldos. Aquí decides qué parte de ese gasto consume cada actividad.</p>
+    </div>
+    <div class="stage-flow" aria-label="Los recursos se distribuyen entre actividades">
+      <div class="flow-node source-node">
+        <span>Origen</span>
+        <strong>{{ selectedResource?.name || 'Selecciona un recurso' }}</strong>
+        <small *ngIf="selectedResource">{{ selectedResource.total_cost | currency }} por distribuir</small>
+        <small *ngIf="!selectedResource">Ej.: Alquiler, sueldos o energía</small>
+      </div>
+      <mat-icon class="flow-arrow">trending_flat</mat-icon>
+      <div class="flow-node destination-node">
+        <span>Destino</span>
+        <strong>Actividades</strong>
+        <small>Producción, calidad, administración…</small>
+      </div>
+    </div>
+  </section>
+
   <div class="allocation-layout">
     <section class="section-card allocation-card">
       <form [formGroup]="allocationForm" (ngSubmit)="onSubmit()" class="allocation-form">
@@ -25,10 +47,24 @@
           <mat-label>Recurso</mat-label>
           <mat-select formControlName="resource_id">
             <mat-option *ngFor="let resource of masterData.resources()" [value]="resource.id">
-              {{ resource.name }} ({{ resource.total_cost | currency }})
+              <span class="source-option">
+                <span>{{ resource.name }} ({{ resource.total_cost | currency }})</span>
+                <span class="allocation-status" [class]="allocationClass(resource.id)">{{ allocationLabel(resource.id) }}</span>
+              </span>
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <p class="selection-help">El estado indica lo que ya guardaste: selecciona un recurso en curso para continuar o uno completo para revisarlo.</p>
+
+        <div *ngIf="selectedResource" class="selected-cost-panel">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <div>
+            <span>Bolsa de costo que estás repartiendo</span>
+            <strong>{{ selectedResource.total_cost | currency }}</strong>
+          </div>
+          <small>Las filas de abajo muestran el importe estimado que recibe cada actividad.</small>
+        </div>
 
         <div *ngIf="distributionsArray.length === 0" class="empty-panel">
           <mat-icon>touch_app</mat-icon>
@@ -49,14 +85,18 @@
             <div *ngFor="let dist of distributionsArray.controls; let i=index" [formGroupName]="i" class="dist-row">
               <span class="row-index">{{ i + 1 }}</span>
 
-              <mat-form-field appearance="outline" class="activity-field">
-                <mat-label>Actividad</mat-label>
-                <input matInput formControlName="activity_name">
-              </mat-form-field>
+              <div class="destination-cell">
+                <mat-form-field appearance="outline" class="activity-field">
+                  <mat-label>Actividad</mat-label>
+                  <input matInput formControlName="activity_name">
+                </mat-form-field>
+                <small class="cost-explanation">Recibirá aproximadamente <strong>{{ allocatedCost(dist.get('percentage')?.value) | currency }}</strong></small>
+              </div>
 
               <mat-form-field appearance="outline" class="percent-field">
                 <mat-label>Porcentaje</mat-label>
-                <input matInput type="number" formControlName="percentage" min="0" max="100">
+                <input matInput type="number" formControlName="percentage" min="0" max="100" step="0.01">
+                <mat-error>Usa un porcentaje de 0 a 100 con hasta dos decimales.</mat-error>
               </mat-form-field>
             </div>
           </div>

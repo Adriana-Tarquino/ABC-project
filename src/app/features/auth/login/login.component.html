@@ -59,12 +59,11 @@
             <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
           </mat-form-field>
 
-          <p *ngIf="message" class="message">{{ message }}</p>
-
           <button mat-raised-button color="primary" type="submit" class="login-btn" [disabled]="loginForm.invalid || loading">
             <mat-icon *ngIf="!loading">login</mat-icon>
-            {{ loading ? 'Validando acceso...' : 'Entrar o crear cuenta' }}
+            {{ loading ? 'Validando acceso...' : (registering ? 'Crear cuenta' : 'Ingresar') }}
           </button>
+          <button mat-button type="button" [disabled]="loading" (click)="registering = !registering">{{ registering ? 'Ya tengo cuenta' : 'Crear una cuenta nueva' }}</button>
         </form>
       </mat-card-content>
     </mat-card>

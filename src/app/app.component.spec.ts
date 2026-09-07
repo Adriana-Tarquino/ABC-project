@@ -20,10 +20,10 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('abc-costing-app');
   });
 
-  it('should render title', () => {
+  it('should render the route outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, abc-costing-app');
+    expect(compiled.querySelector('router-outlet')).not.toBeNull();
   });
 });

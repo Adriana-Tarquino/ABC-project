@@ -11,6 +11,28 @@
     </div>
   </header>
 
+  <section class="abc-stage-guide" aria-label="Etapa dos del costeo ABC">
+    <div class="stage-copy">
+      <span class="stage-kicker">Etapa 2 de 2 · Costo final</span>
+      <h2>Lleva el costo de actividades a productos o servicios</h2>
+      <p>La actividad reúne los costos recibidos en la etapa anterior. Aquí defines cuánto de ese costo corresponde a cada producto o servicio.</p>
+    </div>
+    <div class="stage-flow" aria-label="Las actividades se distribuyen entre productos o servicios">
+      <div class="flow-node source-node">
+        <span>Origen</span>
+        <strong>{{ selectedActivity?.name || 'Selecciona una actividad' }}</strong>
+        <small *ngIf="selectedActivity">{{ activityPoolCost | currency }} recibido desde recursos</small>
+        <small *ngIf="!selectedActivity">Ej.: Producción o control de calidad</small>
+      </div>
+      <mat-icon class="flow-arrow">trending_flat</mat-icon>
+      <div class="flow-node destination-node">
+        <span>Destino final</span>
+        <strong>Productos y servicios</strong>
+        <small>El costo final que verás en Reportes</small>
+      </div>
+    </div>
+  </section>
+
   <div class="allocation-layout">
     <section class="section-card allocation-card">
       <form [formGroup]="allocationForm" (ngSubmit)="onSubmit()" class="allocation-form">
@@ -25,10 +47,24 @@
           <mat-label>Actividad</mat-label>
           <mat-select formControlName="activity_id">
             <mat-option *ngFor="let activity of masterData.activities()" [value]="activity.id">
-              {{ activity.name }}
+              <span class="source-option">
+                <span>{{ activity.name }}</span>
+                <span class="allocation-status" [class]="allocationClass(activity.id)">{{ allocationLabel(activity.id) }}</span>
+              </span>
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <p class="selection-help">El estado indica lo que ya guardaste: selecciona una actividad en curso para continuar o una completa para revisarla.</p>
+
+        <div *ngIf="selectedActivity" class="selected-cost-panel">
+          <mat-icon>account_tree</mat-icon>
+          <div>
+            <span>Costo estimado acumulado en esta actividad</span>
+            <strong>{{ activityPoolCost | currency }}</strong>
+          </div>
+          <small>Se calcula con los recursos ya distribuidos; el cálculo ABC final aplica el redondeo al centavo.</small>
+        </div>
 
         <div *ngIf="distributionsArray.length === 0" class="empty-panel">
           <mat-icon>touch_app</mat-icon>
@@ -49,14 +85,18 @@
             <div *ngFor="let dist of distributionsArray.controls; let i=index" [formGroupName]="i" class="dist-row">
               <span class="row-index">{{ i + 1 }}</span>
 
-              <mat-form-field appearance="outline" class="cost-object-field">
-                <mat-label>Producto o servicio</mat-label>
-                <input matInput formControlName="cost_object_name">
-              </mat-form-field>
+              <div class="destination-cell">
+                <mat-form-field appearance="outline" class="cost-object-field">
+                  <mat-label>Producto o servicio</mat-label>
+                  <input matInput formControlName="cost_object_name">
+                </mat-form-field>
+                <small class="cost-explanation">Recibirá aproximadamente <strong>{{ allocatedCost(dist.get('percentage')?.value) | currency }}</strong></small>
+              </div>
 
               <mat-form-field appearance="outline" class="percent-field">
                 <mat-label>Porcentaje</mat-label>
-                <input matInput type="number" formControlName="percentage" min="0" max="100">
+                <input matInput type="number" formControlName="percentage" min="0" max="100" step="0.01">
+                <mat-error>Usa un porcentaje de 0 a 100 con hasta dos decimales.</mat-error>
               </mat-form-field>
             </div>
           </div>
