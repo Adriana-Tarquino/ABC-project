@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
-import { BehaviorSubject, Observable, filter, take } from 'rxjs';
+import { BehaviorSubject, Observable, filter, take, map } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +20,9 @@ export class SupabaseService {
     this.supabase.auth.getSession().then(({ data: { session } }) => {
       this.currentUser.next(session?.user ?? null);
       this.sessionChecked.next(true); // Ya sabemos si hay sesión o no
+    }).catch(() => {
+      this.currentUser.next(null);
+      this.sessionChecked.next(true);
     });
 
     // Escuchar cambios de auth (login, logout, token refresh)
@@ -37,16 +40,7 @@ export class SupabaseService {
 
   /** Espera hasta que la sesión haya sido verificada, luego emite el usuario */
   get currentUserReady$(): Observable<User | null> {
-    return new Observable(subscriber => {
-      // Esperar a que sessionChecked sea true
-      this.sessionChecked.pipe(
-        filter(checked => checked),
-        take(1)
-      ).subscribe(() => {
-        subscriber.next(this.currentUser.value);
-        subscriber.complete();
-      });
-    });
+    return this.sessionChecked.pipe(filter(Boolean), take(1), map(() => this.currentUser.value));
   }
 
   get client(): SupabaseClient {

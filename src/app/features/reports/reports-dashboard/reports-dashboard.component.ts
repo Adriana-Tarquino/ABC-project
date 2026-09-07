@@ -1,135 +1,83 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { BarChart, PieChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import { SupabaseService } from '../../../core/services/supabase.service';
+import { PeriodService } from '../../../core/services/period.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
+echarts.use([BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
+
 @Component({
-  selector: 'app-reports-dashboard',
-  standalone: true,
+  selector: 'app-reports-dashboard', standalone: true,
   imports: [CommonModule, MatCardModule, MatIconModule],
   templateUrl: './reports-dashboard.component.html',
   styleUrls: ['./reports-dashboard.component.css']
 })
-export class ReportsDashboardComponent implements AfterViewInit {
+export class ReportsDashboardComponent implements AfterViewInit, OnDestroy {
   @ViewChild('productChart') productChartRef!: ElementRef;
   @ViewChild('activityChart') activityChartRef!: ElementRef;
-
   private supabase = inject(SupabaseService);
-
-  ngAfterViewInit(): void {
-    // Inicializar gráficos después de que la vista cargue
-    setTimeout(() => {
-      this.initProductChart();
-      this.initActivityChart();
-    }, 100);
+  private periods = inject(PeriodService);
+  private charts: echarts.ECharts[] = [];
+  private observer?: ResizeObserver;
+  private destroyed = false;
+  loading = true;
+  message = '';
+  products: { name: string; value: number }[] = [];
+  activities: { name: string; value: number }[] = [];
+  get total() { return this.products.reduce((sum, row) => sum + row.value, 0); }
+  get leadProduct() {
+    return this.products.reduce<{ name: string; value: number } | null>((lead, product) =>
+      !lead || product.value > lead.value ? product : lead, null);
   }
 
-  async initProductChart() {
-    const chart = echarts.init(this.productChartRef.nativeElement);
-    
-    // Obtener datos reales de Supabase (Agrupación de costos por producto)
-    // Para simplificar la demo si no hay datos, usamos datos simulados.
-    const { data, error } = await this.supabase.client
-      .from('activity_distributions')
-      .select('assigned_cost, cost_objects(name)');
-
-    let chartData = [];
-    if (!error && data && data.length > 0) {
-      // Agrupar y sumar
-      const grouped = data.reduce((acc: any, curr: any) => {
-        const name = curr.cost_objects?.name || 'Desconocido';
-        acc[name] = (acc[name] || 0) + (curr.assigned_cost || 0);
-        return acc;
-      }, {});
-      chartData = Object.keys(grouped).map(key => ({ name: key, value: grouped[key] }));
-    } else {
-      // Datos simulados (Mock)
-      chartData = [
-        { name: 'Producto A', value: 7900 },
-        { name: 'Producto B', value: 7100 },
-        { name: 'Producto C', value: 3500 }
-      ];
-    }
-
-    const option = {
-      color: ['#0f766e', '#2563eb', '#b7791f', '#7c3aed', '#17803f'],
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a}<br/>{b}: ${c} ({d}%)',
-        borderWidth: 0,
-        padding: 12,
-        textStyle: { color: '#172033' }
-      },
-      legend: {
-        bottom: 0,
-        left: 'center',
-        itemGap: 18,
-        textStyle: { color: '#64748b', fontWeight: 600 }
-      },
-      series: [
-        {
-          name: 'Costo Final',
-          type: 'pie',
-          radius: ['42%', '68%'],
-          center: ['50%', '45%'],
-          data: chartData,
-          label: { color: '#334155', fontWeight: 700 },
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 16,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(15, 23, 42, 0.18)'
-            }
-          }
-        }
-      ]
-    };
-
-    chart.setOption(option);
+  productShare(value: number): number {
+    return this.total ? Math.round(value / this.total * 10000) / 100 : 0;
   }
 
-  async initActivityChart() {
-    const chart = echarts.init(this.activityChartRef.nativeElement);
-    
-    // Mock de datos para el costo de actividades
-    const chartData = {
-      categories: ['Preparar Máquinas', 'Control de Calidad', 'Logística'],
-      values: [9500, 5500, 3200]
-    };
+  async ngAfterViewInit() {
+    try {
+      const period = await this.periods.ready();
+      const [products, activities] = await Promise.all([
+        this.supabase.client.from('cost_objects').select('id, name, activity_distributions(assigned_cost)').eq('period_id', period.id),
+        this.supabase.client.from('activities').select('id, name, resource_distributions(assigned_cost)').eq('period_id', period.id)
+      ]);
+      if (products.error) throw products.error;
+      if (activities.error) throw activities.error;
+      if (this.destroyed) return;
+      const allRows = [...(products.data || []).flatMap(p => p.activity_distributions), ...(activities.data || []).flatMap(a => a.resource_distributions)];
+      if (!allRows.length || allRows.some(row => row.assigned_cost === null)) {
+        this.message = 'No hay resultados vigentes para este período. Completa las asignaciones y ejecuta el cálculo ABC.';
+        return;
+      }
+      this.products = (products.data || []).map(p => ({ name: p.name, value: p.activity_distributions.reduce((sum, d) => sum + Number(d.assigned_cost), 0) }));
+      this.activities = (activities.data || []).map(a => ({ name: a.name, value: a.resource_distributions.reduce((sum, d) => sum + Number(d.assigned_cost), 0) })).sort((a,b) => b.value-a.value);
+      const productChart = echarts.init(this.productChartRef.nativeElement);
+      const activityChart = echarts.init(this.activityChartRef.nativeElement);
+      this.charts = [productChart, activityChart];
+      productChart.setOption({
+        color: ['#0f766e','#2563eb','#b7791f','#7c3aed'], tooltip: { trigger: 'item', renderMode: 'richText' },
+        legend: { bottom: 0 }, series: [{ name: 'Costo final', type: 'pie', radius: ['42%','68%'], center: ['50%','45%'], data: this.products }]
+      });
+      activityChart.setOption({
+        color: ['#0f766e'], tooltip: { trigger: 'axis', renderMode: 'richText' }, grid: { containLabel: true, left: 20, right: 20, bottom: 60 },
+        xAxis: { type: 'category', data: this.activities.map(a => a.name), axisLabel: { rotate: 20 } },
+        yAxis: { type: 'value' }, series: [{ type: 'bar', data: this.activities.map(a => a.value), barMaxWidth: 42 }]
+      });
+      this.observer = new ResizeObserver(() => this.charts.forEach(chart => chart.resize()));
+      this.observer.observe(this.productChartRef.nativeElement);
+      this.observer.observe(this.activityChartRef.nativeElement);
+    } catch { if (!this.destroyed) this.message = 'No se pudieron cargar los resultados. Vuelve a abrir Reportes para reintentar.'; }
+    finally { if (!this.destroyed) this.loading = false; }
+  }
 
-    const option = {
-      color: ['#0f766e'],
-      grid: { top: 24, right: 16, bottom: 44, left: 62 },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        borderWidth: 0,
-        padding: 12,
-        textStyle: { color: '#172033' }
-      },
-      xAxis: {
-        type: 'category',
-        data: chartData.categories,
-        axisLine: { lineStyle: { color: '#d9e2ec' } },
-        axisLabel: { color: '#64748b', fontWeight: 600 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: { formatter: '${value}', color: '#64748b' },
-        splitLine: { lineStyle: { color: '#edf2f7' } }
-      },
-      series: [
-        {
-          data: chartData.values,
-          type: 'bar',
-          barWidth: 42,
-          itemStyle: { borderRadius: [8, 8, 0, 0] }
-        }
-      ]
-    };
-
-    chart.setOption(option);
+  ngOnDestroy() {
+    this.destroyed = true;
+    this.observer?.disconnect();
+    this.charts.forEach(chart => chart.dispose());
   }
 }

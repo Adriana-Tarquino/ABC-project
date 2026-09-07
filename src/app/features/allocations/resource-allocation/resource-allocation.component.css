@@ -1,0 +1,25 @@
+.source-option {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.allocation-status {
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.allocation-status.complete { background: #dcfce7; color: #166534; }
+.allocation-status.partial { background: #fef3c7; color: #92400e; }
+.allocation-status.empty { background: #e2e8f0; color: #475569; }
+
+.selection-help {
+  color: #64748b;
+  font-size: 0.84rem;
+  margin: -8px 0 18px;
+}

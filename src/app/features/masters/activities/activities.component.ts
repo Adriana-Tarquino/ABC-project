@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { FeedbackService } from '../../../core/services/feedback.service';
 
 @Component({
   selector: 'app-activities',
@@ -27,6 +28,7 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class ActivitiesComponent implements OnInit {
   private fb = inject(FormBuilder);
+  private feedback = inject(FeedbackService);
   public masterData = inject(MasterDataService);
 
   activityForm: FormGroup;
@@ -40,17 +42,20 @@ export class ActivitiesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.masterData.loadActivities();
+    this.masterData.loadActivities().catch(() => this.feedback.error('No se pudieron cargar los datos. Comprueba la conexión y la configuración.', 'No pudimos cargar las actividades'));
   }
 
   async onSubmit() {
+    if (this.isSubmitting) return;
     if (this.activityForm.valid) {
       this.isSubmitting = true;
       try {
         await this.masterData.addActivity(this.activityForm.value);
         this.activityForm.reset({ name: '' });
+        this.feedback.success('La actividad ya está disponible para recibir recursos y repartir su costo entre productos.', 'Actividad agregada');
       } catch (error) {
         console.error('Error al agregar actividad', error);
+        this.feedback.error('No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.', 'No pudimos agregar la actividad');
       } finally {
         this.isSubmitting = false;
       }
@@ -58,11 +63,13 @@ export class ActivitiesComponent implements OnInit {
   }
 
   async deleteActivity(id: string) {
-    if(confirm('¿Estás seguro de eliminar esta actividad?')) {
+    if (await this.feedback.confirm('Se eliminará la actividad y sus asignaciones relacionadas dentro del período actual. Esta acción no se puede deshacer.', '¿Eliminar esta actividad?', 'Eliminar actividad')) {
       try {
         await this.masterData.deleteActivity(id);
+        this.feedback.success('La actividad y sus asignaciones relacionadas fueron eliminadas del período actual.', 'Actividad eliminada');
       } catch (error) {
         console.error('Error al eliminar actividad', error);
+        this.feedback.error('No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.', 'No pudimos eliminar la actividad');
       }
     }
   }

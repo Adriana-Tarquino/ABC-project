@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { FeedbackService } from '../../../core/services/feedback.service';
 
 @Component({
   selector: 'app-resources',
@@ -27,6 +28,7 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class ResourcesComponent implements OnInit {
   private fb = inject(FormBuilder);
+  private feedback = inject(FeedbackService);
   public masterData = inject(MasterDataService);
 
   resourceForm: FormGroup;
@@ -41,7 +43,7 @@ export class ResourcesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.masterData.loadResources();
+    this.masterData.loadResources().catch(() => this.feedback.error('No se pudieron cargar los datos. Comprueba la conexión y la configuración.', 'No pudimos cargar los recursos'));
   }
 
   get totalResourceCost(): number {
@@ -49,13 +51,16 @@ export class ResourcesComponent implements OnInit {
   }
 
   async onSubmit() {
+    if (this.isSubmitting) return;
     if (this.resourceForm.valid) {
       this.isSubmitting = true;
       try {
         await this.masterData.addResource(this.resourceForm.value);
         this.resourceForm.reset({ name: '', total_cost: 0 });
+        this.feedback.success('El recurso ya forma parte del período actual y está listo para distribuirse entre actividades.', 'Recurso agregado');
       } catch (error) {
         console.error('Error al agregar recurso', error);
+        this.feedback.error('No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.', 'No pudimos agregar el recurso');
       } finally {
         this.isSubmitting = false;
       }
@@ -63,11 +68,13 @@ export class ResourcesComponent implements OnInit {
   }
 
   async deleteResource(id: string) {
-    if(confirm('¿Estás seguro de eliminar este recurso?')) {
+    if (await this.feedback.confirm('Se eliminará el recurso y sus asignaciones relacionadas dentro del período actual. Esta acción no se puede deshacer.', '¿Eliminar este recurso?', 'Eliminar recurso')) {
       try {
         await this.masterData.deleteResource(id);
+        this.feedback.success('El recurso y sus asignaciones relacionadas fueron eliminados del período actual.', 'Recurso eliminado');
       } catch (error) {
         console.error('Error al eliminar recurso', error);
+        this.feedback.error('No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.', 'No pudimos eliminar el recurso');
       }
     }
   }

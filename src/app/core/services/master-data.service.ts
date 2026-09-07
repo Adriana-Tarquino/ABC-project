@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { PeriodService } from './period.service';
 import { SupabaseService } from './supabase.service';
 
 export interface Resource {
@@ -22,6 +23,7 @@ export interface CostObject {
 })
 export class MasterDataService {
   private supabase = inject(SupabaseService);
+  private periods = inject(PeriodService);
 
   // Signals para el manejo del estado local (alta performance)
   resources = signal<Resource[]>([]);
@@ -35,16 +37,21 @@ export class MasterDataService {
   // --- RECURSOS ---
   async loadResources() {
     this.loadingResources.set(true);
-    const { data, error } = await this.supabase.client.from('resources').select('*').order('created_at', { ascending: true });
-    this.loadingResources.set(false);
-    if (error) throw error;
-    this.resources.set(data || []);
+    this.resources.set([]);
+    try {
+      const period = await this.periods.ready();
+      const { data, error } = await this.supabase.client.from('resources').select('*').eq('period_id', period.id).order('created_at');
+      if (error) throw error;
+      if (this.periods.current()?.id === period.id) this.resources.set(data || []);
+    } finally { this.loadingResources.set(false); }
   }
 
   async addResource(resource: Resource) {
-    const { data, error } = await this.supabase.client.from('resources').insert([resource]).select();
+    if (!resource.name.trim()) throw new Error('El nombre es obligatorio');
+    const period = await this.periods.ready();
+    const { data, error } = await this.supabase.client.from('resources').insert([{ ...resource, name: resource.name.trim(), company_id: period.company_id, period_id: period.id }]).select();
     if (error) throw error;
-    if (data) {
+    if (data?.length && this.periods.current()?.id === period.id) {
       this.resources.update(res => [...res, data[0]]);
     }
   }
@@ -58,16 +65,21 @@ export class MasterDataService {
   // --- ACTIVIDADES ---
   async loadActivities() {
     this.loadingActivities.set(true);
-    const { data, error } = await this.supabase.client.from('activities').select('*').order('created_at', { ascending: true });
-    this.loadingActivities.set(false);
-    if (error) throw error;
-    this.activities.set(data || []);
+    this.activities.set([]);
+    try {
+      const period = await this.periods.ready();
+      const { data, error } = await this.supabase.client.from('activities').select('*').eq('period_id', period.id).order('created_at');
+      if (error) throw error;
+      if (this.periods.current()?.id === period.id) this.activities.set(data || []);
+    } finally { this.loadingActivities.set(false); }
   }
 
   async addActivity(activity: Activity) {
-    const { data, error } = await this.supabase.client.from('activities').insert([activity]).select();
+    if (!activity.name.trim()) throw new Error('El nombre es obligatorio');
+    const period = await this.periods.ready();
+    const { data, error } = await this.supabase.client.from('activities').insert([{ ...activity, name: activity.name.trim(), company_id: period.company_id, period_id: period.id }]).select();
     if (error) throw error;
-    if (data) {
+    if (data?.length && this.periods.current()?.id === period.id) {
       this.activities.update(act => [...act, data[0]]);
     }
   }
@@ -81,16 +93,21 @@ export class MasterDataService {
   // --- OBJETOS DE COSTO (Productos/Servicios) ---
   async loadCostObjects() {
     this.loadingCostObjects.set(true);
-    const { data, error } = await this.supabase.client.from('cost_objects').select('*').order('created_at', { ascending: true });
-    this.loadingCostObjects.set(false);
-    if (error) throw error;
-    this.costObjects.set(data || []);
+    this.costObjects.set([]);
+    try {
+      const period = await this.periods.ready();
+      const { data, error } = await this.supabase.client.from('cost_objects').select('*').eq('period_id', period.id).order('created_at');
+      if (error) throw error;
+      if (this.periods.current()?.id === period.id) this.costObjects.set(data || []);
+    } finally { this.loadingCostObjects.set(false); }
   }
 
   async addCostObject(costObject: CostObject) {
-    const { data, error } = await this.supabase.client.from('cost_objects').insert([costObject]).select();
+    if (!costObject.name.trim()) throw new Error('El nombre es obligatorio');
+    const period = await this.periods.ready();
+    const { data, error } = await this.supabase.client.from('cost_objects').insert([{ ...costObject, name: costObject.name.trim(), company_id: period.company_id, period_id: period.id }]).select();
     if (error) throw error;
-    if (data) {
+    if (data?.length && this.periods.current()?.id === period.id) {
       this.costObjects.update(co => [...co, data[0]]);
     }
   }

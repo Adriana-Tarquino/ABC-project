@@ -1,20 +1,22 @@
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { SupabaseService } from '../services/supabase.service';
+import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export const authGuard: CanActivateFn = (route, state) => {
-  const supabaseService = inject(SupabaseService);
+export const authGuard: CanActivateFn = async (route, state) => {
+  const injector = inject(Injector);
   const router = inject(Router);
+  const { SupabaseService } = await import('../services/supabase.service');
+  const supabaseService = injector.get(SupabaseService);
 
   // Usamos currentUserReady$ que ESPERA a que Supabase termine de verificar
   // si hay una sesión guardada en el navegador antes de decidir
-  return supabaseService.currentUserReady$.pipe(
+  return firstValueFrom(supabaseService.currentUserReady$.pipe(
     map(user => {
       if (user) {
         return true;
       }
       return router.createUrlTree(['/login']);
     })
-  );
+  ));
 };

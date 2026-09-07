@@ -11,25 +11,68 @@
     </div>
   </header>
 
-  <div class="stats-grid">
+  <section *ngIf="loading" class="report-state" role="status">
+    <mat-icon>hourglass_top</mat-icon>
+    <div><strong>Preparando el análisis del período</strong><span>Cargando costos, actividades y resultados calculados.</span></div>
+  </section>
+
+  <section *ngIf="message" class="report-state info-state" role="status">
+    <mat-icon>insights</mat-icon>
+    <div><strong>Aún no hay un resultado ABC para mostrar</strong><span>{{ message }}</span></div>
+  </section>
+
+  <div class="stats-grid" *ngIf="!loading && !message">
     <article class="stat-card">
-      <span>Vista actual</span>
-      <strong>Costos</strong>
-      <small>Lectura consolidada por producto</small>
+      <span>Costo total asignado</span>
+      <strong>{{ total | currency }}</strong>
+      <small>Todo el gasto distribuido en productos o servicios</small>
     </article>
     <article class="stat-card info">
       <span>Comparación</span>
-      <strong>Actividades</strong>
+      <strong>{{ activities.length }} actividades</strong>
       <small>Procesos ordenados por impacto</small>
     </article>
     <article class="stat-card accent">
       <span>Uso recomendado</span>
-      <strong>Decidir</strong>
+      <strong>{{ products.length }} productos</strong>
       <small>Prioriza ajustes con base en consumo real</small>
     </article>
   </div>
 
-  <div class="charts-grid">
+  <section *ngIf="!loading && !message" class="final-cost-card" aria-label="Costos finales del período">
+    <div class="final-cost-heading">
+      <div>
+        <span class="eyebrow">Resultado final del modelo</span>
+        <h2>¿Cuánto cuesta realmente cada producto?</h2>
+        <p>Este monto ya incluye todos los recursos que llegaron a cada producto a través de las actividades.</p>
+      </div>
+      <div class="final-total">
+        <span>Costo total del período</span>
+        <strong>{{ total | currency }}</strong>
+      </div>
+    </div>
+
+    <div *ngIf="leadProduct" class="cost-insight">
+      <mat-icon>stars</mat-icon>
+      <span><strong>{{ leadProduct.name }}</strong> concentra el mayor costo: {{ leadProduct.value | currency }} ({{ productShare(leadProduct.value) }}% del total).</span>
+    </div>
+
+    <div class="cost-breakdown" role="list" aria-label="Desglose de costos por producto">
+      <article *ngFor="let product of products; let i = index" class="cost-row" role="listitem">
+        <div class="cost-row-heading">
+          <span class="cost-rank">{{ i + 1 }}</span>
+          <strong>{{ product.name }}</strong>
+          <span class="cost-value">{{ product.value | currency }}</span>
+        </div>
+        <div class="cost-bar-track" [attr.aria-label]="product.name + ': ' + productShare(product.value) + '% del costo total'">
+          <span class="cost-bar" [style.width.%]="productShare(product.value)"></span>
+        </div>
+        <small>{{ productShare(product.value) }}% del costo total del período</small>
+      </article>
+    </div>
+  </section>
+
+  <div class="charts-grid" *ngIf="!loading && !message">
     <section class="section-card chart-panel">
       <div class="card-heading">
         <div>
