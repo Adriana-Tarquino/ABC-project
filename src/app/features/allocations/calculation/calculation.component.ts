@@ -172,9 +172,17 @@ export class CalculationComponent implements OnInit {
       this.feedback.success('El período fue procesado. En Reportes encontrarás el costo final de cada producto o servicio.', 'Cálculo ABC completado');
     } catch (error: any) {
       console.error(error);
-      this.feedback.error(error.message || 'No se pudo ejecutar el cálculo. Revisa las asignaciones e inténtalo nuevamente.', 'No pudimos calcular el período');
+      this.feedback.error(this.calculationErrorMessage(error), 'No pudimos calcular el período');
     } finally {
       this.isCalculating = false;
     }
+  }
+
+  private calculationErrorMessage(error: { message?: string; code?: string } | undefined): string {
+    const detail = error?.message || '';
+    if (error?.code === 'PGRST202' || /calculate_abc_period|function .* does not exist/i.test(detail)) {
+      return 'El motor ABC aún no está instalado en Supabase. Aplica la migración 20260905000000_complete_abc.sql y vuelve a ejecutar el cálculo.';
+    }
+    return detail || 'No se pudo ejecutar el cálculo. Revisa las asignaciones e inténtalo nuevamente.';
   }
 }

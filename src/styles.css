@@ -1445,6 +1445,52 @@ table {
   margin-top: 4px;
 }
 
+/* Both message and confirmation dialogs share the same responsive, accessible shell. */
+.confirmation-dialog-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 26px;
+}
+
+.confirmation-icon {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: 50%;
+  place-items: center;
+}
+
+.confirmation-icon mat-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
+.confirmation-copy h2 {
+  margin: 0 0 7px;
+  color: var(--text);
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.confirmation-copy p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.confirmation-actions {
+  display: flex;
+  grid-column: 2;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .feedback-warning .feedback-icon { color: var(--amber); background: var(--amber-soft); }
 .feedback-error .feedback-icon { color: var(--danger); background: var(--danger-soft); }
 .feedback-info .feedback-icon { color: var(--blue); background: var(--blue-soft); }
@@ -1558,8 +1604,23 @@ table {
     gap: 12px;
   }
 
-  .feedback-actions {
+  .feedback-actions,
+  .confirmation-actions {
     grid-column: 1;
+  }
+
+  .confirmation-dialog-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 22px 20px;
+  }
+
+  .confirmation-actions {
+    justify-content: stretch;
+  }
+
+  .confirmation-actions button {
+    flex: 1 1 140px;
   }
 
   .row-index {
